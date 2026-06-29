@@ -1,0 +1,91 @@
+version: "3.9"
+
+services:
+  # ─── PostgreSQL Database ───────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: horizon_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: horizon
+      POSTGRES_PASSWORD: horizon
+      POSTGRES_DB: horizondb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U horizon -d horizondb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis Cache ───────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: horizon_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── FastAPI Backend ───────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: horizon_backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://horizon:horizon@postgres:5432/horizondb
+      REDIS_URL: redis://redis:6379/0
+      USE_SQLITE: "false"
+      USE_REDIS: "true"
+    volumes:
+      - ./backend:/app/backend
+      - datasets_volume:/app/backend/datasets
+      - models_volume:/app/backend/ml_models
+      - reports_volume:/app/backend/reports/output
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ─── React Frontend (Nginx) ────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: horizon_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+      VITE_WS_BASE_URL: ws://localhost:8000
+
+volumes:
+  postgres_data:
+  redis_data:
+  datasets_volume:
+  models_volume:
+  reports_volume:

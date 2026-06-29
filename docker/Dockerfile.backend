@@ -1,0 +1,27 @@
+FROM python:3.11-slim
+
+# System deps for scientific stack
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ gfortran libffi-dev libssl-dev curl \
+    libhdf5-dev libnetcdf-dev pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies first (Docker layer cache)
+COPY backend/requirements.txt ./requirements.txt
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY backend/ ./backend/
+
+ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Create required directories
+RUN mkdir -p backend/datasets/cache backend/ml_models backend/reports/output
+
+EXPOSE 8000
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

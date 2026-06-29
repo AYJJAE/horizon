@@ -1,0 +1,233 @@
+/* ─── Google Fonts ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* ─── Base Reset ────────────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { 
+    scroll-behavior: smooth; 
+    cursor: none; /* Hide default cursor */
+  }
+
+  body {
+    @apply font-sans text-gray-100 bg-space-900 antialiased overflow-x-hidden;
+    -webkit-font-smoothing: antialiased;
+    cursor: none;
+  }
+
+  /* Interactive elements should also hide cursor since we use custom one */
+  a, button, input, select, textarea, label {
+    cursor: none !important;
+  }
+
+  h1, h2, h3, h4, h5, h6 { 
+    @apply font-display font-bold text-white tracking-wide; 
+  }
+}
+
+/* ─── Custom Components ─────────────────────────────────────────────────────── */
+@layer components {
+
+  /* Glassmorphism Card */
+  .card {
+    @apply bg-glass-gradient backdrop-blur-md border border-white/10 rounded-2xl p-6
+           shadow-card transition-all duration-500 ease-out relative overflow-hidden;
+  }
+  .card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition-opacity duration-500;
+  }
+  .card:hover::before { @apply opacity-100; }
+  .card:hover { @apply shadow-card-hover border-white/20 -translate-y-1; }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-display font-medium
+           text-sm transition-all duration-300 focus:outline-none focus:ring-2
+           focus:ring-offset-2 focus:ring-offset-space-900 active:scale-[0.98] select-none
+           border border-white/10 backdrop-blur-md relative overflow-hidden;
+  }
+  
+  .btn::after {
+    content: '';
+    @apply absolute inset-0 bg-white/20 translate-y-[100%] transition-transform duration-300 ease-out;
+  }
+  .btn:hover::after {
+    @apply translate-y-0;
+  }
+
+  .btn-primary {
+    @apply btn bg-cosmic-blue/20 text-cosmic-cyan border-cosmic-cyan/30 shadow-glow-cyan;
+  }
+  .btn-primary:hover {
+    @apply bg-cosmic-blue/30 border-cosmic-cyan/60 text-white shadow-glow-cyan;
+  }
+
+  .btn-accent {
+    @apply btn bg-cosmic-purple/20 text-white border-cosmic-purple/50 shadow-glow-purple;
+  }
+  .btn-accent:hover { 
+    @apply bg-cosmic-purple/40 border-cosmic-purple/80 shadow-[0_0_30px_rgba(139,92,246,0.6)];
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-gray-300 hover:text-white border-transparent hover:border-white/10 hover:bg-white/5;
+  }
+  .btn-outline {
+    @apply btn bg-transparent border-white/20 text-gray-200 hover:text-white hover:bg-white/10 hover:border-white/40;
+  }
+  .btn-danger {
+    @apply btn bg-cosmic-red/20 text-cosmic-red border-cosmic-red/30 hover:bg-cosmic-red/40 hover:text-white hover:border-cosmic-red/80;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-display font-semibold backdrop-blur-md border border-white/10;
+  }
+  .badge-planet { @apply bg-cosmic-green/20 text-cosmic-green border-cosmic-green/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]; }
+  .badge-fp { @apply bg-cosmic-red/20 text-cosmic-red border-cosmic-red/30 shadow-[0_0_10px_rgba(239,68,68,0.2)]; }
+  .badge-unknown { @apply bg-cosmic-gold/20 text-cosmic-gold border-cosmic-gold/30 shadow-[0_0_10px_rgba(245,158,11,0.2)]; }
+  .badge-tls { @apply bg-cosmic-purple/20 text-cosmic-purple border-cosmic-purple/30; }
+  .badge-bls { @apply bg-cosmic-cyan/20 text-cosmic-cyan border-cosmic-cyan/30; }
+
+  /* Input */
+  .input {
+    @apply block w-full px-4 py-3 rounded-xl border border-white/10
+           bg-space-800/50 backdrop-blur-md text-white text-sm placeholder-gray-500
+           focus:outline-none focus:ring-1 focus:ring-cosmic-cyan focus:border-cosmic-cyan
+           transition-all duration-300 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)];
+  }
+
+  /* Stat Card */
+  .stat-card {
+    @apply card flex flex-col gap-2 relative;
+  }
+  .stat-value {
+    @apply text-4xl font-display font-bold text-white;
+    text-shadow: 0 0 20px rgba(255,255,255,0.3);
+  }
+  .stat-label {
+    @apply text-sm text-cosmic-cyan/80 font-display uppercase tracking-widest;
+  }
+
+  /* Section heading */
+  .section-title {
+    @apply text-2xl font-display font-bold text-white mb-2 tracking-wide;
+  }
+  .section-subtitle {
+    @apply text-sm text-gray-400 mb-8 font-sans max-w-2xl leading-relaxed;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(90deg, #06B6D4, #8B5CF6);
+  }
+
+  /* Table */
+  .data-table { @apply w-full text-sm font-sans; }
+  .data-table th {
+    @apply px-4 py-4 text-left text-xs font-display font-semibold text-cosmic-cyan uppercase
+           tracking-widest bg-space-800/40 border-b border-white/10 backdrop-blur-sm;
+  }
+  .data-table td {
+    @apply px-4 py-4 border-b border-white/5 text-gray-300 transition-colors duration-200;
+  }
+  .data-table tr:hover td { @apply bg-white/5 text-white; }
+
+  /* Progress bar */
+  .progress-bar {
+    @apply h-2 rounded-full bg-space-800 border border-white/5 overflow-hidden shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)];
+  }
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-500 relative;
+    background: linear-gradient(90deg, #06B6D4, #8B5CF6);
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+  }
+  .progress-fill::after {
+    content: '';
+    @apply absolute inset-0 bg-white/20 w-1/3 blur-sm;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply bg-space-800 rounded animate-pulse border border-white/5;
+    background: linear-gradient(90deg, #050B14 25%, #0D1C34 50%, #050B14 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Step indicator */
+  .step-dot {
+    @apply w-10 h-10 rounded-full flex items-center justify-center text-sm font-display font-bold border backdrop-blur-md transition-all duration-500;
+  }
+  .step-dot-active { @apply bg-cosmic-cyan/20 text-cosmic-cyan border-cosmic-cyan shadow-glow-cyan scale-110; }
+  .step-dot-done { @apply bg-cosmic-purple/20 text-cosmic-purple border-cosmic-purple shadow-glow-purple; }
+  .step-dot-pending { @apply bg-space-800/50 text-gray-500 border-white/10; }
+}
+
+/* ─── Utilities ─────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #1E4A8A #050B14;
+  }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: #050B14; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { @apply bg-navy-600 rounded-full hover:bg-navy-500 transition-colors; }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Dynamic Glowing and Scanning Animations */
+  .glow-pulse-cyan {
+    animation: glow-pulse-cyan-anim 3s infinite ease-in-out;
+  }
+  .glow-pulse-purple {
+    animation: glow-pulse-purple-anim 3s infinite ease-in-out;
+  }
+  .scanline-overlay {
+    position: relative;
+  }
+  .scanline-overlay::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 2;
+    background-size: 100% 4px, 6px 100%;
+    pointer-events: none;
+    opacity: 0.4;
+  }
+}
+
+@keyframes glow-pulse-cyan-anim {
+  0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.3); border-color: rgba(6, 182, 212, 0.3); }
+  50% { box-shadow: 0 0 25px rgba(6, 182, 212, 0.6); border-color: rgba(6, 182, 212, 0.6); }
+}
+
+@keyframes glow-pulse-purple-anim {
+  0%, 100% { box-shadow: 0 0 15px rgba(139, 92, 246, 0.3); border-color: rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 25px rgba(139, 92, 246, 0.6); border-color: rgba(139, 92, 246, 0.6); }
+}
+
+/* ─── Plotly overrides for Dark Theme ───────────────────────────────────────── */
+.js-plotly-plot .plotly .cursor-crosshair { cursor: none; }
+.js-plotly-plot { 
+  border-radius: 1rem; 
+  overflow: hidden; 
+  background: transparent !important;
+}
+.plotly .main-svg { background: transparent !important; }
+.plotly .bg { fill: transparent !important; }
+
+/* ─── Page transitions ──────────────────────────────────────────────────────── */
+.page-enter { @apply animate-fade-in; }
