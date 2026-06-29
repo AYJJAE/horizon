@@ -1,0 +1,11 @@
+backend/datasets/*.csv
+backend/datasets/*.fits
+backend/datasets/sample/
+backend/ml_models/*.h5
+backend/ml_models/*.pkl
+backend/ml_models/*.pt
+backend/ml_models/*.pth
+tests/
+.pytest_cache/
+__pycache__/
+*.pyc
