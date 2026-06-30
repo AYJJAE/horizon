@@ -22,15 +22,15 @@ python-dotenv==1.0.1
 
 # ─── Scientific Core ──────────────────────────────────────────────────────────
 numpy==1.26.4
-pandas==2.2.2
-scipy==1.13.0
-astropy==6.1.0
-astroquery==0.4.7
+# scipy removed (using custom running mean & heuristics fallbacks)
+# pandas removed (using pure python csv parser)
+# astropy removed (fits parsing disabled on vercel)
+# astroquery removed (mast search disabled on vercel)
 
 # ─── Astronomy / Transit Detection ───────────────────────────────────────────
-lightkurve==2.4.2
-transitleastsquares==1.0.31
-wotan==1.10
+# lightkurve removed (mast download disabled on vercel)
+# transitleastsquares removed (using BLS fallback)
+# wotan removed (using running mean fallback)
 
 # ─── Machine Learning ────────────────────────────────────────────────────────
 # scikit-learn removed to save space (using heuristic fallback)
@@ -42,7 +42,7 @@ wotan==1.10
 # reportlab and Pillow removed to save space
 
 # ─── FITS File Handling ───────────────────────────────────────────────────────
-astropy  # already listed above, includes fits
+# astropy removed
 
 # ─── Async / Task Queue ───────────────────────────────────────────────────────
 aiofiles==23.2.1

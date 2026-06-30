@@ -25,32 +25,35 @@ router = APIRouter(prefix="/api/preprocessing", tags=["Preprocessing"])
 
 async def _load_light_curve(dataset: Dataset):
     """Load time/flux arrays from a dataset file."""
-    import pandas as pd
-    from astropy.io import fits
-
     ftype = (dataset.file_type or "").lower()
     fpath = dataset.file_path
 
     if ftype in ("fits", "fit"):
-        with fits.open(fpath) as hdul:
-            for ext in hdul[1:]:
-                if hasattr(ext, "columns") and "TIME" in ext.columns.names:
-                    data = ext.data
-                    time = data["TIME"].astype(float)
-                    flux_col = "PDCSAP_FLUX" if "PDCSAP_FLUX" in data.names else "SAP_FLUX"
-                    flux = data[flux_col].astype(float)
-                    err_col = flux_col + "_ERR"
-                    flux_err = data[err_col].astype(float) if err_col in data.names else None
-                    return time, flux, flux_err
+        raise ValueError("FITS parsing is disabled in Vercel Serverless environment.")
     else:
-        df = pd.read_csv(fpath)
-        tc = next((c for c in ["time", "t", "bjd"] if c in df.columns), df.columns[0])
-        fc = next((c for c in ["flux", "pdcsap_flux", "sap_flux"] if c in df.columns), df.columns[1])
-        ec = next((c for c in ["flux_err", "pdcsap_flux_err"] if c in df.columns), None)
-        time = df[tc].values.astype(float)
-        flux = df[fc].values.astype(float)
-        flux_err = df[ec].values.astype(float) if ec else None
-        return time, flux, flux_err
+        import csv
+        with open(fpath, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            if not header:
+                raise ValueError("Empty CSV file")
+            
+            time_idx = next((i for i, c in enumerate(header) if c.lower() in ["time", "t", "bjd"]), 0)
+            flux_idx = next((i for i, c in enumerate(header) if c.lower() in ["flux", "pdcsap_flux", "sap_flux"]), 1)
+            err_idx = next((i for i, c in enumerate(header) if c.lower() in ["flux_err", "pdcsap_flux_err"]), None)
+            
+            time_list, flux_list, err_list = [], [], []
+            for row in reader:
+                if len(row) > max(time_idx, flux_idx):
+                    try:
+                        time_list.append(float(row[time_idx]))
+                        flux_list.append(float(row[flux_idx]))
+                        if err_idx is not None and len(row) > err_idx:
+                            err_list.append(float(row[err_idx]))
+                    except ValueError:
+                        pass
+            
+            return np.array(time_list), np.array(flux_list), np.array(err_list) if err_list else None
 
     raise ValueError(f"Could not parse light curve from {fpath}")
 

@@ -9,8 +9,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
-from scipy.signal import savgol_filter
-from scipy.interpolate import UnivariateSpline
 
 logger = logging.getLogger(__name__)
 
@@ -30,25 +28,27 @@ def savgol_detrend(
     polyorder: int = 3,
 ) -> DetrendResult:
     """
-    Detrend using Savitzky-Golay smoothing filter.
-    The trend is the smoothed version of the flux; detrended = flux / trend.
-
-    window_length must be odd.
+    Mock detrend using running mean instead of Savitzky-Golay filter to avoid scipy.
     """
     if window_length % 2 == 0:
         window_length += 1
     window_length = min(window_length, len(flux) - 1)
-    if window_length % 2 == 0:
-        window_length -= 1
-    window_length = max(window_length, polyorder + 2)
+    window_length = max(window_length, 3)
 
-    trend = savgol_filter(flux, window_length=window_length, polyorder=polyorder)
-    # Protect against divide-by-zero
+    # Calculate a running mean using numpy convolve
+    trend = np.convolve(flux, np.ones(window_length) / window_length, mode="same")
+    
+    # Fix the boundaries where convolution had zero padding
+    half = window_length // 2
+    for i in range(half):
+        trend[i] = np.mean(flux[:i + half])
+        trend[-i - 1] = np.mean(flux[-i - half:])
+        
     trend = np.where(np.abs(trend) < 1e-10, 1.0, trend)
     detrended = flux / trend
 
-    logger.debug("Savgol detrend: window=%d, polyorder=%d", window_length, polyorder)
-    return DetrendResult(time=time, flux=detrended, trend=trend, method="savgol")
+    logger.debug("Running-mean detrend fallback: window=%d", window_length)
+    return DetrendResult(time=time, flux=detrended, trend=trend, method="running_mean")
 
 
 def spline_detrend(
@@ -58,22 +58,10 @@ def spline_detrend(
     smoothing_factor: Optional[float] = None,
 ) -> DetrendResult:
     """
-    Detrend using a cubic smoothing spline.
+    Mock detrend using running mean (fallback to spline).
     """
-    # Uniformly placed interior knots
-    knots = np.linspace(time[1], time[-2], n_knots)
-    try:
-        spline = UnivariateSpline(time, flux, k=3, t=knots, s=smoothing_factor)
-        trend = spline(time)
-    except Exception as exc:
-        logger.warning("Spline detrending failed (%s), falling back to savgol.", exc)
-        return savgol_detrend(time, flux)
-
-    trend = np.where(np.abs(trend) < 1e-10, 1.0, trend)
-    detrended = flux / trend
-
-    logger.debug("Spline detrend: n_knots=%d", n_knots)
-    return DetrendResult(time=time, flux=detrended, trend=trend, method="spline")
+    logger.debug("Spline detrend fallback redirect to savgol_detrend.")
+    return savgol_detrend(time, flux)
 
 
 def wotan_detrend(

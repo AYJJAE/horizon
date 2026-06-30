@@ -90,11 +90,18 @@ async def download_tess(
         fname = f"TIC{tic_id}_S{actual_sector}_{ds_id[:8]}.csv"
         fpath = os.path.join(settings.datasets_dir, fname)
 
-        import pandas as pd
-        df = pd.DataFrame({"time": time, "flux": flux})
-        if flux_err:
-            df["flux_err"] = flux_err
-        df.to_csv(fpath, index=False)
+        import csv
+        with open(fpath, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            header = ["time", "flux"]
+            if flux_err:
+                header.append("flux_err")
+            writer.writerow(header)
+            for i in range(len(time)):
+                row = [time[i], flux[i]]
+                if flux_err:
+                    row.append(flux_err[i])
+                writer.writerow(row)
 
         # Persist to DB
         dataset = Dataset(
@@ -152,24 +159,26 @@ async def upload_dataset(
     num_points, time_start, time_end = None, None, None
     try:
         if suffix == ".csv":
-            import pandas as pd
-            df = pd.read_csv(fpath)
-            time_col = next((c for c in ["time", "t", "bjd", "jd"] if c in df.columns), None)
-            if time_col:
-                time_arr = df[time_col].dropna().values
-                num_points = len(time_arr)
-                time_start = float(time_arr[0])
-                time_end = float(time_arr[-1])
-        elif suffix in {".fits", ".fit"}:
-            from astropy.io import fits
-            with fits.open(fpath) as hdul:
-                for ext in hdul[1:]:
-                    if hasattr(ext, "columns") and "TIME" in ext.columns.names:
-                        time_arr = ext.data["TIME"]
-                        num_points = int(len(time_arr))
+            import csv
+            with open(fpath, "r", encoding="utf-8") as f:
+                reader = csv.reader(f)
+                header = next(reader, None)
+                if header:
+                    time_idx = next((i for i, c in enumerate(header) if c.lower() in ["time", "t", "bjd", "jd"]), 0)
+                    time_arr = []
+                    for row in reader:
+                        if len(row) > time_idx:
+                            try:
+                                val = float(row[time_idx])
+                                time_arr.append(val)
+                            except ValueError:
+                                pass
+                    if time_arr:
+                        num_points = len(time_arr)
                         time_start = float(time_arr[0])
                         time_end = float(time_arr[-1])
-                        break
+        elif suffix in {".fits", ".fit"}:
+            raise HTTPException(400, "FITS file parsing is disabled in Vercel Serverless environment due to bundle size limits. Please upload a CSV file.")
     except Exception as e:
         logger.warning("Could not parse metadata from %s: %s", fname, e)
 
@@ -225,24 +234,32 @@ async def preview_dataset(dataset_id: str, max_points: int = 5000, db: AsyncSess
 
         ftype = (dataset.file_type or "").lower()
         if ftype in ("fits", "fit"):
-            with fits.open(dataset.file_path) as hdul:
-                for ext in hdul[1:]:
-                    if hasattr(ext, "columns") and "TIME" in ext.columns.names:
-                        data = ext.data
-                        time = data["TIME"].astype(float)
-                        flux_col = "PDCSAP_FLUX" if "PDCSAP_FLUX" in data.names else "SAP_FLUX"
-                        flux = data[flux_col].astype(float)
-                        err_col = flux_col + "_ERR"
-                        flux_err = data[err_col].astype(float) if err_col in data.names else None
-                        break
+            raise HTTPException(400, "FITS previews are disabled in Vercel Serverless environment.")
         else:
-            df = pd.read_csv(dataset.file_path)
-            time_col = next((c for c in ["time", "t", "bjd"] if c in df.columns), df.columns[0])
-            flux_col = next((c for c in ["flux", "sap_flux", "pdcsap_flux"] if c in df.columns), df.columns[1])
-            err_col = next((c for c in ["flux_err", "sap_flux_err"] if c in df.columns), None)
-            time = df[time_col].values.astype(float)
-            flux = df[flux_col].values.astype(float)
-            flux_err = df[err_col].values.astype(float) if err_col else None
+            import csv
+            with open(dataset.file_path, "r", encoding="utf-8") as f:
+                reader = csv.reader(f)
+                header = next(reader, None)
+                if not header:
+                    raise ValueError("Empty CSV file")
+                
+                time_idx = next((i for i, c in enumerate(header) if c.lower() in ["time", "t", "bjd"]), 0)
+                flux_idx = next((i for i, c in enumerate(header) if c.lower() in ["flux", "sap_flux", "pdcsap_flux"]), 1)
+                err_idx = next((i for i, c in enumerate(header) if c.lower() in ["flux_err", "sap_flux_err"]), None)
+                
+                time_list, flux_list, err_list = [], [], []
+                for row in reader:
+                    if len(row) > max(time_idx, flux_idx):
+                        try:
+                            time_list.append(float(row[time_idx]))
+                            flux_list.append(float(row[flux_idx]))
+                            if err_idx is not None and len(row) > err_idx:
+                                err_list.append(float(row[err_idx]))
+                        except ValueError:
+                            pass
+                time = np.array(time_list)
+                flux = np.array(flux_list)
+                flux_err = np.array(err_list) if err_list else None
 
         # Remove NaN and downsample
         mask = np.isfinite(time) & np.isfinite(flux)
