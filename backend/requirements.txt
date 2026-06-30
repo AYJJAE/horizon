@@ -33,15 +33,13 @@ transitleastsquares==1.0.31
 wotan==1.10
 
 # ─── Machine Learning ────────────────────────────────────────────────────────
-scikit-learn==1.5.0
+# scikit-learn removed to save space (using heuristic fallback)
 
 # ─── Visualization (server-side) ─────────────────────────────────────────────
-matplotlib==3.9.0
-plotly==5.22.0
+# plotly and matplotlib removed (JSON dicts used natively)
 
 # ─── PDF Report Generation ───────────────────────────────────────────────────
-reportlab==4.2.0
-Pillow==10.3.0
+# reportlab and Pillow removed to save space
 
 # ─── FITS File Handling ───────────────────────────────────────────────────────
 astropy  # already listed above, includes fits
